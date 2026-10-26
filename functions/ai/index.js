@@ -15,8 +15,8 @@ import { GoogleAuth } from 'google-auth-library';
  */
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'platepost-e133a';
-const LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'us-central1';
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const LOCATION = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-4-argon';
 // Optional fallback backend: AI Studio key, kept ONLY as a server-side secret
 // (Cloud Run env var backed by Secret Manager). Absent => Vertex AI via IAM.
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || null;
@@ -141,7 +141,11 @@ app.post('/generate', async (req, res) => {
       const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/cloud-platform'] });
       const client = await auth.getClient();
       const { token: accessToken } = await client.getAccessToken();
-      const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${MODEL}:generateContent`;
+      const host =
+        LOCATION === 'global'
+          ? 'aiplatform.googleapis.com'
+          : `${LOCATION}-aiplatform.googleapis.com`;
+      const url = `https://${host}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${MODEL}:generateContent`;
       upstream = await fetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },

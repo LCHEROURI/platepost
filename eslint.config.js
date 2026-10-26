@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
 
 export default tseslint.config(
-  { ignores: ['dist', 'functions/ai/node_modules'] },
+  { ignores: ['dist', '**/node_modules/**', '.firebase/**', '*.log', 'firestore-debug.log'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
