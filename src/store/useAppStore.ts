@@ -51,6 +51,7 @@ interface AppState {
   initAuth: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, restaurantName: string) => Promise<void>;
+  createRestaurant: (name: string) => Promise<void>;
   signOut: () => Promise<void>;
   addOrUpdatePost: (post: Post) => void;
   removePost: (id: string) => void;
@@ -70,6 +71,23 @@ async function loadUserData(uid: string) {
   const restaurant = await restaurantService.getByOwner(uid);
   const posts = restaurant ? await postService.load(restaurant.id) : [];
   return { restaurant, posts };
+}
+
+/** New restaurant profile, keyed by owner uid (same shape signup creates). */
+function restaurantForOwner(uid: string, email: string, name: string): Restaurant {
+  return {
+    id: uid,
+    name: name.trim(),
+    contactEmail: email,
+    phone: '',
+    address: '',
+    workingHours: '',
+    ownerId: uid,
+    brandColor: defaultBranding().brandColor,
+    fontFamily: defaultBranding().fontFamily,
+    handles: { instagram: '', facebook: '', x: '' },
+    createdAt: new Date().toISOString(),
+  };
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -142,25 +160,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       // Each new account gets its own restaurant profile, keyed by uid.
-      const restaurant: Restaurant = {
-        id: cred.user.uid,
-        name: restaurantName.trim(),
-        contactEmail: email,
-        phone: '',
-        address: '',
-        workingHours: '',
-        ownerId: cred.user.uid,
-        brandColor: defaultBranding().brandColor,
-        fontFamily: defaultBranding().fontFamily,
-        handles: { instagram: '', facebook: '', x: '' },
-        createdAt: new Date().toISOString(),
-      };
-      await restaurantService.create(restaurant);
+      await restaurantService.create(restaurantForOwner(cred.user.uid, email, restaurantName));
     } catch (err) {
       const code = (err as { code?: string }).code ?? 'unknown';
       if (code === 'auth/email-already-in-use') throw new Error(authErrorMessage(code));
       throw new Error(authErrorMessage(code));
     }
+  },
+
+  createRestaurant: async (name) => {
+    const user = get().user;
+    if (!user) throw new Error('Not signed in.');
+    const restaurant = restaurantForOwner(user.uid, user.email, name);
+    await restaurantService.create(restaurant);
+    set({ restaurant, posts: [], userDataReady: true });
+    get().pushToast(`Welcome to PlatePost, ${restaurant.name}!`, 'success');
   },
 
   signOut: async () => {

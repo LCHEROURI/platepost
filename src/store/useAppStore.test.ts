@@ -116,6 +116,28 @@ describe('useAppStore', () => {
     expect(mocks.postService.remove).toHaveBeenCalledWith(first);
   });
 
+  it('creates a restaurant for the signed-in user via createRestaurant', async () => {
+    vi.useFakeTimers();
+    useAppStore.setState({ user: { uid: 'user-42', email: 'owner@test.com' } });
+    await useAppStore.getState().createRestaurant('New Bistro');
+
+    const s = useAppStore.getState();
+    expect(s.restaurant?.name).toBe('New Bistro');
+    expect(s.restaurant?.id).toBe('user-42');
+    expect(s.restaurant?.ownerId).toBe('user-42');
+    expect(s.userDataReady).toBe(true);
+    expect(mocks.restaurantService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'user-42', ownerId: 'user-42', name: 'New Bistro' }),
+    );
+    vi.useRealTimers();
+  });
+
+  it('rejects createRestaurant when nobody is signed in', async () => {
+    await expect(useAppStore.getState().createRestaurant('No Owner')).rejects.toThrow(
+      'Not signed in',
+    );
+  });
+
   it('signs out to the demo user in demo mode', async () => {
     useAppStore.setState({ demoMode: true, user: DEMO_USER });
     await useAppStore.getState().signOut();
