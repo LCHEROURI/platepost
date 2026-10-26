@@ -16,6 +16,9 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'platepost-e133a';
 const META_APP_ID = process.env.META_APP_ID || null;
 const META_APP_SECRET = process.env.META_APP_SECRET || null;
+// Facebook Login for Business apps authorize via a Business integration
+// configuration id instead of a scope list. Set to use the config_id flow.
+const META_CONFIG_ID = process.env.META_CONFIG_ID || null;
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v22.0';
 const SERVICE_URL = process.env.SERVICE_URL || 'https://platepost-meta-634241914382.us-central1.run.app';
 const APP_ORIGIN = process.env.APP_ORIGIN || 'http://localhost:5173';
@@ -160,10 +163,17 @@ app.post('/oauth/init', async (req, res) => {
     client_id: META_APP_ID,
     redirect_uri: REDIRECT_URI,
     state,
-    scope: META_SCOPES,
     response_type: 'code',
     display: 'popup',
   });
+  if (META_CONFIG_ID) {
+    // Business Login: the configuration carries the permissions.
+    params.set('config_id', META_CONFIG_ID);
+    params.set('override_default_response_type', 'true');
+  } else {
+    // Standard Facebook Login: explicit scope list.
+    params.set('scope', META_SCOPES);
+  }
   res.json({ authorizeUrl: `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth?${params}` });
 });
 
