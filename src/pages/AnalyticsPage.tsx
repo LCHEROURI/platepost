@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { useAppStore } from '@/store/useAppStore';
 import { seedAnalytics, seedPostMetrics } from '@/lib/seed';
+import { getMetaInsights, type MetaInsights } from '@/lib/meta';
 import { CATEGORY_LABELS, type PostCategory } from '@/lib/types';
 import { cn, downloadCsv } from '@/lib/utils';
 import { BarChart, LineChart } from '@/components/Charts';
@@ -16,9 +18,21 @@ function sum(points: ReturnType<typeof seedAnalytics>, key: 'engagements' | 'imp
 
 export default function AnalyticsPage() {
   const posts = useAppStore((s) => s.posts);
+  const demoMode = useAppStore((s) => s.demoMode);
   const [range, setRange] = useState<(typeof RANGES)[number]>(14);
   const [sortKey, setSortKey] = useState<'likes' | 'impressions' | 'comments'>('likes');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  // Live overview numbers from the connected Meta accounts (demo mode keeps samples).
+  const [insights, setInsights] = useState<MetaInsights | null>(null);
+  const [insightsFailed, setInsightsFailed] = useState(false);
+
+  useEffect(() => {
+    if (demoMode) return;
+    getMetaInsights()
+      .then(setInsights)
+      .catch(() => setInsightsFailed(true));
+  }, [demoMode]);
 
   const points = useMemo(() => seedAnalytics(range), [range]);
   const metrics = useMemo(() => seedPostMetrics(posts), [posts]);
@@ -124,26 +138,50 @@ export default function AnalyticsPage() {
         {[
           {
             label: 'Total engagements',
-            value: sum(points, 'engagements').toLocaleString(),
-            sub: `Last ${range} days`,
+            value: demoMode
+              ? sum(points, 'engagements').toLocaleString()
+              : insights
+                ? insights.engagementLast7d.toLocaleString()
+                : '—',
+            sub: demoMode
+              ? `Sample · last ${range} days`
+              : insights
+                ? 'Likes, comments, shares · 7d from Meta'
+                : 'Connect Meta accounts for live numbers',
             icon: HeartIcon,
           },
           {
             label: 'Impressions',
-            value: sum(points, 'impressions').toLocaleString(),
-            sub: `Last ${range} days`,
+            value: demoMode
+              ? sum(points, 'impressions').toLocaleString()
+              : insights
+                ? insights.impressionsLast7d.toLocaleString()
+                : '—',
+            sub: demoMode
+              ? `Sample · last ${range} days`
+              : insights
+                ? 'Reach of your Page · 7d'
+                : 'Connect Meta accounts for live numbers',
             icon: EyeIcon,
           },
           {
             label: 'Follower growth',
-            value: `${followerDelta >= 0 ? '+' : ''}${followerDelta}`,
-            sub: `${first.followers.toLocaleString()} → ${last.followers.toLocaleString()}`,
+            value: demoMode
+              ? `${followerDelta >= 0 ? '+' : ''}${followerDelta}`
+              : insights
+                ? `${(insights.followers.instagram ?? 0) + (insights.followers.facebook ?? 0)}`
+                : '—',
+            sub: demoMode
+              ? `${first.followers.toLocaleString()} → ${last.followers.toLocaleString()}`
+              : insights
+                ? 'Instagram + Facebook followers'
+                : 'Connect Meta accounts for live numbers',
             icon: UsersIcon,
           },
           {
             label: 'Posts published',
             value: String(publishedCount),
-            sub: 'All time (demo data)',
+            sub: 'From PlatePost publishing',
             icon: DownloadIcon,
           },
         ].map((c) => (
@@ -157,6 +195,12 @@ export default function AnalyticsPage() {
           </div>
         ))}
       </section>
+
+      {!demoMode && !insights && insightsFailed && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Charts below show demo data. <Link to="/settings" className="font-semibold underline">Connect your Meta accounts</Link> to see live analytics.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section aria-labelledby="trend-heading" className="card p-5">

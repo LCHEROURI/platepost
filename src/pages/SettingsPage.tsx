@@ -1,7 +1,13 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
-import type { Platform } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import {
+  disconnectMeta,
+  getMetaStatus,
+  startMetaOAuth,
+  type MetaStatus,
+} from '@/lib/meta';
 import { CheckIcon, FacebookIcon, InstagramIcon, XBrandIcon } from '@/components/icons';
 
 type Tab = 'profile' | 'social' | 'subscription' | 'branding';
@@ -13,19 +19,68 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'branding', label: 'Branding' },
 ];
 
-const PLATFORM_META = [
-  { platform: 'instagram' as Platform, icon: InstagramIcon, blurb: 'Publish photos, reels and stories.' },
-  { platform: 'facebook' as Platform, icon: FacebookIcon, blurb: 'Publish to your business page.' },
-  { platform: 'x' as Platform, icon: XBrandIcon, blurb: 'Coming soon — X (Twitter).' },
-];
-
 export default function SettingsPage() {
   const restaurant = useAppStore((s) => s.restaurant)!;
-  const accounts = useAppStore((s) => s.accounts);
   const updateRestaurant = useAppStore((s) => s.updateRestaurant);
-  const setAccountConnected = useAppStore((s) => s.setAccountConnected);
+  const demoMode = useAppStore((s) => s.demoMode);
+  const pushToast = useAppStore((s) => s.pushToast);
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>('profile');
   const [form, setForm] = useState({ ...restaurant });
+
+  // Meta connection state (real OAuth flow through the Cloud Run service).
+  const [metaStatus, setMetaStatus] = useState<MetaStatus | null>(null);
+  const [metaBusy, setMetaBusy] = useState(false);
+
+  const refreshMetaStatus = () => {
+    if (demoMode) return;
+    getMetaStatus()
+      .then(setMetaStatus)
+      .catch(() => setMetaStatus({ connected: false }));
+  };
+
+  useEffect(() => {
+    refreshMetaStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoMode]);
+
+  useEffect(() => {
+    const result = searchParams.get('meta');
+    if (result === 'connected') {
+      pushToast('Facebook Page connected — you can now publish from PlatePost.', 'success');
+      setTab('social');
+      refreshMetaStatus();
+    } else if (result === 'error') {
+      const msg = searchParams.get('msg');
+      pushToast(`Connection failed: ${msg ?? 'unknown error'}`, 'error');
+      setTab('social');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  const handleConnect = async () => {
+    setMetaBusy(true);
+    try {
+      const { authorizeUrl } = await startMetaOAuth(`${window.location.origin}/settings`);
+      window.location.href = authorizeUrl;
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : 'Could not start the connection flow.', 'error');
+      setMetaBusy(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setMetaBusy(true);
+    try {
+      await disconnectMeta();
+      setMetaStatus({ connected: false });
+      pushToast('Meta accounts disconnected.', 'info');
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : 'Could not disconnect.', 'error');
+    } finally {
+      setMetaBusy(false);
+    }
+  };
 
   const handleProfileSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -97,39 +152,69 @@ export default function SettingsPage() {
 
       {tab === 'social' && (
         <section className="max-w-2xl space-y-3" aria-label="Connected social accounts">
-          {PLATFORM_META.map(({ platform, icon: Icon, blurb }) => {
-            const account = accounts.find((a) => a.platform === platform);
-            const connected = Boolean(account?.connected);
-            return (
-              <div key={platform} className="card flex items-center gap-4 p-5">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-ink">
-                  <Icon size={22} aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-ink">{platform === 'x' ? 'X (Twitter)' : platform === 'instagram' ? 'Instagram' : 'Facebook'}</p>
-                  <p className="truncate text-sm text-ink-muted">
-                    {connected ? (account?.platformUsername ? `@${account.platformUsername}` : 'Connected') : blurb}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAccountConnected(platform, !connected)}
-                  className={connected ? 'btn-secondary' : 'btn-primary'}
-                >
-                  {connected ? (
-                    <>
-                      <CheckIcon size={15} aria-hidden /> Connected
-                    </>
-                  ) : (
-                    'Connect'
-                  )}
-                </button>
-              </div>
-            );
-          })}
+          <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <FacebookIcon size={22} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-ink">Facebook Page + Instagram</p>
+              <p className="truncate text-sm text-ink-muted">
+                {metaStatus?.connected
+                  ? `Connected: ${metaStatus.pageName ?? 'your Page'}${
+                      metaStatus.igUsername ? ` · @${metaStatus.igUsername}` : ' · no Instagram account linked'
+                    }`
+                  : 'Connect through Meta login to publish to your Facebook Page and Instagram business account.'}
+              </p>
+            </div>
+            {metaStatus?.connected ? (
+              <button
+                type="button"
+                onClick={() => void handleDisconnect()}
+                disabled={metaBusy}
+                className="btn-secondary"
+              >
+                Disconnect
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleConnect()}
+                disabled={metaBusy || demoMode}
+                className="btn-primary"
+              >
+                {metaBusy ? 'Opening Meta…' : 'Connect with Facebook'}
+              </button>
+            )}
+          </div>
+
+          <div className="card flex items-center gap-4 p-5 opacity-60">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-ink">
+              <InstagramIcon size={22} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-ink">Instagram (direct)</p>
+              <p className="truncate text-sm text-ink-muted">
+                Instagram publishing uses the business account linked to your Facebook Page.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-muted">
+              <CheckIcon size={14} aria-hidden /> Via Page
+            </span>
+          </div>
+
+          <div className="card flex items-center gap-4 p-5 opacity-60">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface text-ink">
+              <XBrandIcon size={22} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-ink">X (Twitter)</p>
+              <p className="truncate text-sm text-ink-muted">Coming soon.</p>
+            </div>
+          </div>
+
           <p className="text-xs text-ink-muted">
-            OAuth 2.0 connection flow is a placeholder — production wiring uses Cloud Run functions for the
-            Instagram and Facebook Graph APIs.
+            Connection tokens are stored server-side only (Firestore, invisible to the app) and the Meta App
+            Secret lives in Google Secret Manager — never in the app or the repo.
           </p>
         </section>
       )}

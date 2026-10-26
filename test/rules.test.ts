@@ -159,6 +159,9 @@ describe('Firestore security rules', () => {
     await assertFails(setDoc(postDoc(db, ALICE, 'p1'), postData(ALICE, 'x')));
     await assertFails(deleteDoc(doc(db, 'restaurants', ALICE)));
     await assertFails(getDoc(postDoc(db, ALICE, 'p1')));
+    // Server-only collections stay invisible to clients (blanket deny-all).
+    await assertFails(getDoc(doc(db, 'meta_connections', ALICE)));
+    await assertFails(getDoc(doc(db, 'meta_oauth_states', 'any')));
   });
 
   it('lets an owner create, read, and update their own restaurant', async () => {
@@ -202,6 +205,10 @@ describe('Firestore security rules', () => {
     // Direct read of another restaurant’s data → denied.
     await assertFails(getDoc(doc(bobDb, 'restaurants', ALICE)));
     await assertFails(getDoc(postDoc(bobDb, ALICE, 'p1')));
+
+    // Server-only token store is invisible even to the owner's client SDK.
+    await assertFails(getDoc(doc(bobDb, 'meta_connections', BOB)));
+    await assertFails(setDoc(doc(bobDb, 'meta_connections', BOB), { pageToken: 'x' }));
 
     // Queries over Alice’s posts return nothing to Bob.
     await expectNoData(getDocs(postsRef(bobDb, ALICE)));

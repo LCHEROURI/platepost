@@ -8,6 +8,8 @@ import CaptionEditor from '@/components/CaptionEditor';
 import SchedulePicker, { type ScheduleValue } from '@/components/SchedulePicker';
 import PlatformSelector from '@/components/PlatformSelector';
 import PreviewPane from '@/components/PreviewPane';
+import { publishToMeta } from '@/lib/meta';
+import { uploadMediaFromBlob } from '@/lib/storage';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ export default function CreatePostPage() {
   const [tone, setTone] = useState<Tone>('casual');
   const [platforms, setPlatforms] = useState<Platform[]>(['instagram']);
   const [watermark, setWatermark] = useState(true);
+  const [publishing, setPublishing] = useState(false);
   const [schedule, setSchedule] = useState<ScheduleValue>({
     mode: 'later',
     scheduledAt: toIsoDateTimeLocal(new Date(Date.now() + 24 * 60 * 60 * 1000)),
@@ -77,15 +80,62 @@ export default function CreatePostPage() {
     navigate('/calendar');
   };
 
-  const handleSchedule = () => {
+  const handleSchedule = async () => {
     const post = buildPost('scheduled');
     if (!post) return;
-    addOrUpdatePost(post);
-    pushToast(
-      schedule.mode === 'now' ? 'Post published immediately (demo).' : 'Post scheduled successfully.',
-      'success',
-    );
-    navigate('/calendar');
+
+    if (schedule.mode === 'later') {
+      addOrUpdatePost(post);
+      pushToast('Post scheduled successfully.', 'success');
+      navigate('/calendar');
+      return;
+    }
+
+    // Publish now — real Graph API publishing through the Meta service.
+    setPublishing(true);
+    try {
+      let mediaUrl: string | null = post.mediaUrl ?? null;
+      if (mediaUrl?.startsWith('blob:')) {
+        mediaUrl = await uploadMediaFromBlob(mediaUrl);
+      } else if (mediaUrl?.startsWith('data:')) {
+        mediaUrl = null; // demo placeholders have no public URL
+      }
+      const { results } = await publishToMeta({
+        caption: post.caption,
+        hashtags: post.hashtags,
+        mediaUrl,
+        platforms: post.platforms.map((p) => p.platform),
+      });
+
+      const failed = results.filter((r) => !r.ok);
+      post.status =
+        results.length > 0 && failed.length < results.length ? 'published' : 'failed';
+      post.publishedAt = post.status === 'published' ? new Date().toISOString() : undefined;
+      post.failedReason =
+        failed.map((r) => `${r.platform}: ${r.error}`).join(' · ') || undefined;
+      post.platforms = post.platforms.map((p) => {
+        const r = results.find((x) => x.platform === p.platform);
+        return r
+          ? {
+              ...p,
+              status: (r.ok ? 'published' : 'failed') as 'published' | 'failed',
+              platformPostId: r.platformPostId ?? undefined,
+            }
+          : p;
+      });
+      addOrUpdatePost(post);
+      pushToast(
+        post.status === 'published'
+          ? 'Published to your Meta accounts.'
+          : 'Publishing completed with errors — see the post status.',
+        post.status === 'published' ? 'success' : 'error',
+      );
+      navigate('/calendar');
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : 'Publishing failed. Please try again.', 'error');
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -170,8 +220,17 @@ export default function CreatePostPage() {
             <button type="button" onClick={handleSaveDraft} className="btn-secondary w-full sm:w-auto">
               Save Draft
             </button>
-            <button type="button" onClick={handleSchedule} className="btn-primary w-full sm:w-auto">
-              {schedule.mode === 'now' ? 'Publish Now' : 'Schedule Post'}
+            <button
+              type="button"
+              onClick={() => void handleSchedule()}
+              disabled={publishing}
+              className="btn-primary w-full sm:w-auto"
+            >
+              {publishing
+                ? 'Publishing…'
+                : schedule.mode === 'now'
+                  ? 'Publish Now'
+                  : 'Schedule Post'}
             </button>
           </div>
         </div>

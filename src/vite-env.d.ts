@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID?: string;
   /** Cloud Run AI caption service URL (see functions/ai). */
   readonly VITE_AI_SERVICE_URL?: string;
+  /** Cloud Run Meta publishing service URL (see functions/meta). */
+  readonly VITE_META_SERVICE_URL?: string;
 }
 
 interface ImportMeta {

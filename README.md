@@ -65,8 +65,13 @@ WCAG 2.1 AA-oriented (labels, focus rings, aria-live toasts, keyboard-closable m
   Studio key supplied as the `GEMINI_API_KEY` env var (Secret Manager) if set. Set
   `VITE_AI_SERVICE_URL` in the app env. If the service is down, Create Post shows a clear
   inline error — there is no mock fallback.
-- **Publishing & analytics** — Cloud Run functions calling Instagram/Facebook Graph APIs
-  with encrypted token storage and refresh-token handling.
+- **Publishing & analytics** — ✅ Cloud Run service `platepost-meta` (`functions/meta`, deployed
+  in `platepost-e133a`) handles the Meta login connect flow and Graph API publishing
+  (Facebook Page + linked Instagram business account). The Meta App ID/Secret come from
+  Secret Manager only; user Page tokens are stored in Firestore under `meta_connections`,
+  which the client SDK rules deny entirely (verified in `npm run test:rules`). The dashboard
+  and analytics pages show real follower/engagement numbers from `/insights` once connected.
+  Post status (published/failed per platform) reflects real Graph API results.
 - **Scheduled publishing** — Cloud Scheduler → Cloud Run publisher, updating Firestore statuses
   (the data model already has `scheduled_at`, `post_platforms`, `failed_reason`).
 - **Media processing** — Cloud Storage triggers for resizing/WebP + watermark overlay.
