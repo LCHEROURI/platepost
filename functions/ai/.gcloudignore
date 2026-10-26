@@ -1,0 +1,5 @@
+# Keep Cloud Run source deploys lean.
+node_modules/
+npm-debug.log
+.env
+.env.local

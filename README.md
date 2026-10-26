@@ -58,8 +58,13 @@ WCAG 2.1 AA-oriented (labels, focus rings, aria-live toasts, keyboard-closable m
   and queries. Signed-out visitors are denied everything. Deploy with
   `firebase deploy --only firestore:rules --project <project-id>`; verified locally with
   `npm run test:rules` (Firestore + Auth emulators).
-- **AI captions** — Cloud Run service proxying Google Gemini; replace `src/lib/ai.ts` mock
-  (same `AiSuggestion[]` return shape) and keep API keys server-side.
+- **AI captions** — ✅ Cloud Run service `platepost-ai` (`functions/ai`, deployed in
+  `platepost-e133a`) generating real captions with Gemini. The browser sends the Firebase
+  ID token; the service verifies it, then calls Gemini server-side — no keys in the app or
+  repo. Two backends: Vertex AI via service-account IAM (default, no key at all), or an AI
+  Studio key supplied as the `GEMINI_API_KEY` env var (Secret Manager) if set. Set
+  `VITE_AI_SERVICE_URL` in the app env. If the service is down, Create Post shows a clear
+  inline error — there is no mock fallback.
 - **Publishing & analytics** — Cloud Run functions calling Instagram/Facebook Graph APIs
   with encrypted token storage and refresh-token handling.
 - **Scheduled publishing** — Cloud Scheduler → Cloud Run publisher, updating Firestore statuses

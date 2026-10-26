@@ -29,9 +29,12 @@ export default function CaptionEditor({
   const [keywords, setKeywords] = useState('');
   const [generating, setGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<Awaited<ReturnType<typeof generateCaptions>>>([]);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setGenerating(true);
+    setAiError(null);
+    setSuggestions([]);
     try {
       const results = await generateCaptions({
         restaurantName: restaurant.name,
@@ -40,8 +43,8 @@ export default function CaptionEditor({
         tone,
       });
       setSuggestions(results);
-    } catch {
-      pushToast('AI caption generation failed. Please try again.', 'error');
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : 'AI caption generation failed. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -124,6 +127,18 @@ export default function CaptionEditor({
           </button>
         </div>
       </div>
+
+      {aiError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-200 bg-amber-50 p-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-wide text-amber-800">
+            AI suggestions unavailable
+          </p>
+          <p className="mt-1 text-sm text-amber-900">{aiError}</p>
+        </div>
+      )}
 
       {suggestions.length > 0 && (
         <div className="rounded-xl border border-accent/40 bg-accent/5 p-4" aria-live="polite">
