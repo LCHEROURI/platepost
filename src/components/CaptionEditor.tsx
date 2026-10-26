@@ -24,7 +24,7 @@ export default function CaptionEditor({
   tone: Tone;
   onToneChange: (t: Tone) => void;
 }) {
-  const restaurant = useAppStore((s) => s.restaurant);
+  const restaurant = useAppStore((s) => s.restaurant)!;
   const pushToast = useAppStore((s) => s.pushToast);
   const [keywords, setKeywords] = useState('');
   const [generating, setGenerating] = useState(false);

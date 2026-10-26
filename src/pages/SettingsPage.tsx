@@ -20,7 +20,7 @@ const PLATFORM_META = [
 ];
 
 export default function SettingsPage() {
-  const restaurant = useAppStore((s) => s.restaurant);
+  const restaurant = useAppStore((s) => s.restaurant)!;
   const accounts = useAppStore((s) => s.accounts);
   const updateRestaurant = useAppStore((s) => s.updateRestaurant);
   const setAccountConnected = useAppStore((s) => s.setAccountConnected);

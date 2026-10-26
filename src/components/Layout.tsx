@@ -64,7 +64,10 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const restaurant = useAppStore((s) => s.restaurant);
+  const restaurant = useAppStore((s) => s.restaurant)!;
+  const user = useAppStore((s) => s.user);
+  const demoMode = useAppStore((s) => s.demoMode);
+  const signOut = useAppStore((s) => s.signOut);
   return (
     <div className="flex h-full flex-col">
       <div className="px-5 pb-6 pt-6">
@@ -78,10 +81,20 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
             {restaurant.name.charAt(0)}
           </div>
-          <div className="min-w-0 leading-tight">
+          <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-semibold text-ink">{restaurant.name}</p>
-            <p className="truncate text-xs text-ink-muted">{restaurant.workingHours}</p>
+            <p className="truncate text-xs text-ink-muted">{user?.email ?? 'Demo user'}</p>
           </div>
+          {!demoMode && (
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="rounded-lg px-2 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:bg-primary/5 hover:text-ink"
+              aria-label="Sign out"
+            >
+              Sign out
+            </button>
+          )}
         </div>
       </div>
     </div>

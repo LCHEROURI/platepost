@@ -68,6 +68,7 @@ function makePost(input: PostInput): Post {
   return {
     id: `post-${input.emoji.codePointAt(0)?.toString(16)}-${input.offsetDays}-${input.hour}`,
     restaurantId: R,
+    ownerId: seedRestaurant.ownerId,
     creatorId: 'user-demo-1',
     caption: input.caption,
     mediaUrl: placeholderMedia(input.emoji, input.bg),

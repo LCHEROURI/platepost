@@ -10,6 +10,11 @@ export type Tone = 'casual' | 'exciting' | 'informative' | 'humorous' | 'profess
 
 export type Recurrence = 'none' | 'daily' | 'weekly' | 'monthly';
 
+export interface AppUser {
+  uid: string;
+  email: string;
+}
+
 export interface Restaurant {
   id: string;
   name: string;
@@ -44,6 +49,8 @@ export interface PostPlatform {
 export interface Post {
   id: string;
   restaurantId: string;
+  /** Denormalized owner uid — required for query gating in the security rules. */
+  ownerId: string;
   creatorId: string;
   caption: string;
   mediaUrl?: string;

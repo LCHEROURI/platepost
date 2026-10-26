@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// PlatePost — restaurant-scoped Firestore rules.
+// A signed-in user may only read and write their own restaurant's data.
+// Nobody signed out can read or write anything.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /restaurants/{restaurantId} {
+      // Restaurants are keyed by owner uid (doc id == ownerId).
+      allow get, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if signedIn() && restaurantId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == restaurantId
+        && request.resource.data.name is string;
+      allow update: if signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid;
+
+      // Posts live under their restaurant. Path-based ownership works for both
+      // get and list (query) evaluation, which resource.data checks alone cannot.
+      match /posts/{postId} {
+        allow read: if signedIn() && restaurantId == request.auth.uid;
+        allow create: if signedIn()
+          && restaurantId == request.auth.uid
+          && request.resource.data.restaurantId == restaurantId;
+        allow update: if signedIn()
+          && restaurantId == request.auth.uid
+          && request.resource.data.restaurantId == resource.data.restaurantId;
+        allow delete: if signedIn() && restaurantId == request.auth.uid;
+      }
+    }
+
+    // Everything else (social_accounts, analytics, …) is locked down until its
+    // ownership pattern is implemented. Deny by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

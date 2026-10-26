@@ -1,16 +1,8 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  setDoc,
-  type Firestore,
-} from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, setDoc, type Firestore } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase';
 import type { Post } from '../lib/types';
 
 const LS_KEY = 'platepost:posts';
-const POSTS_COLLECTION = 'posts';
 
 function readLocal(): Post[] {
   try {
@@ -25,23 +17,29 @@ function writeLocal(posts: Post[]): void {
   localStorage.setItem(LS_KEY, JSON.stringify(posts));
 }
 
+/** Posts live at restaurants/{restaurantId}/posts — path-scoped by the security rules. */
+function postsCollection(restaurantId: string) {
+  return collection(db as Firestore, 'restaurants', restaurantId, 'posts');
+}
+
 /**
- * Post persistence. Uses Firestore when Firebase is configured (see .env.example),
- * otherwise falls back to localStorage so the demo app is fully functional offline.
+ * Post persistence, scoped to one restaurant. Uses Firestore subcollections when
+ * configured (matching the security rules), otherwise falls back to localStorage
+ * so demo mode keeps working offline.
  */
 export const postService = {
-  async load(): Promise<Post[]> {
+  async load(restaurantId: string): Promise<Post[]> {
     if (db && isFirebaseConfigured) {
-      const snapshot = await getDocs(collection(db as Firestore, POSTS_COLLECTION));
+      const snapshot = await getDocs(postsCollection(restaurantId));
       return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Post);
     }
-    return readLocal();
+    return readLocal().filter((p) => p.restaurantId === restaurantId);
   },
 
   async save(post: Post): Promise<void> {
     if (db && isFirebaseConfigured) {
       const { id, ...data } = post;
-      await setDoc(doc(db as Firestore, POSTS_COLLECTION, id), { ...data, id });
+      await setDoc(doc(postsCollection(post.restaurantId), id), { ...data, id });
       return;
     }
     const posts = readLocal();
@@ -51,11 +49,11 @@ export const postService = {
     writeLocal(posts);
   },
 
-  async remove(id: string): Promise<void> {
+  async remove(post: Post): Promise<void> {
     if (db && isFirebaseConfigured) {
-      await deleteDoc(doc(db as Firestore, POSTS_COLLECTION, id));
+      await deleteDoc(doc(postsCollection(post.restaurantId), post.id));
       return;
     }
-    writeLocal(readLocal().filter((p) => p.id !== id));
+    writeLocal(readLocal().filter((p) => p.id !== post.id));
   },
 };

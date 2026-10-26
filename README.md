@@ -51,7 +51,13 @@ WCAG 2.1 AA-oriented (labels, focus rings, aria-live toasts, keyboard-closable m
 
 ## Backend roadmap (Google ecosystem, per project AGENTS.md)
 
-- **Auth** — Firebase Auth UI + Cloud Firestore security rules for restaurant profiles.
+- **Auth** — ✅ Firebase Auth (email + password). Sign-up also creates the restaurant
+  profile (`restaurants/{uid}`). Route guards redirect signed-out visitors to `/signin`.
+- **Security rules** — ✅ `firestore.rules`: restaurant-scoped access. Posts live under
+  `restaurants/{ownerUid}/posts/{id}` so ownership is path-enforced for reads, writes
+  and queries. Signed-out visitors are denied everything. Deploy with
+  `firebase deploy --only firestore:rules --project <project-id>`; verified locally with
+  `npm run test:rules` (Firestore + Auth emulators).
 - **AI captions** — Cloud Run service proxying Google Gemini; replace `src/lib/ai.ts` mock
   (same `AiSuggestion[]` return shape) and keep API keys server-side.
 - **Publishing & analytics** — Cloud Run functions calling Instagram/Facebook Graph APIs
@@ -64,5 +70,9 @@ WCAG 2.1 AA-oriented (labels, focus rings, aria-live toasts, keyboard-closable m
 
 ## Testing
 
-Unit tests cover the AI generator, utilities, and store logic. React Testing Library,
-Playwright E2E, RLS policy tests, and Lighthouse audits are planned next.
+| Command              | What it verifies                                             |
+| -------------------- | ------------------------------------------------------------ |
+| `npm test`           | Unit tests: AI generator, utilities, store logic             |
+| `npm run test:rules` | Firebase Auth lifecycle + Firestore security rules (Firestore & Auth emulators; requires Java) |
+
+React Testing Library, Playwright E2E, and Lighthouse audits are planned next.

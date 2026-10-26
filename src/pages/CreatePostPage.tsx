@@ -11,7 +11,7 @@ import PreviewPane from '@/components/PreviewPane';
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
-  const restaurant = useAppStore((s) => s.restaurant);
+  const restaurant = useAppStore((s) => s.restaurant)!;
   const accounts = useAppStore((s) => s.accounts);
   const addOrUpdatePost = useAppStore((s) => s.addOrUpdatePost);
   const pushToast = useAppStore((s) => s.pushToast);
@@ -31,16 +31,13 @@ export default function CreatePostPage() {
     weeklyDay: 'Monday',
   });
 
-  const connectedPlatforms = accounts.filter((a) => a.connected).map((a) => a.platform);
-  const selectedConnected = platforms.filter((p) => connectedPlatforms.includes(p));
-
   const buildPost = (status: Post['status']): Post | null => {
     if (!caption.trim()) {
       pushToast('Add a caption before saving.', 'error');
       return null;
     }
-    if (selectedConnected.length === 0) {
-      pushToast('Select at least one connected platform.', 'error');
+    if (platforms.length === 0) {
+      pushToast('Select at least one platform.', 'error');
       return null;
     }
     const now = new Date().toISOString();
@@ -48,6 +45,7 @@ export default function CreatePostPage() {
     return {
       id: uid(),
       restaurantId: restaurant.id,
+      ownerId: restaurant.ownerId,
       creatorId: restaurant.ownerId,
       caption: caption.trim(),
       mediaUrl: media?.url,
@@ -58,7 +56,7 @@ export default function CreatePostPage() {
       category,
       isRecurring: schedule.isRecurring,
       recurrence: schedule.isRecurring ? schedule.recurrence : 'none',
-      platforms: selectedConnected.map((p) => ({
+      platforms: platforms.map((p) => ({
         platform: p,
         accountId: accounts.find((a) => a.platform === p)?.id,
         status: statusForPlatform,
@@ -182,7 +180,7 @@ export default function CreatePostPage() {
           <h2 className="mb-3 text-base font-bold text-ink">Preview</h2>
           <PreviewPane
             data={{ caption, mediaUrl: media?.url, mediaType: media?.mediaType ?? 'image', hashtags, category }}
-            platforms={selectedConnected}
+            platforms={platforms}
           />
         </aside>
       </div>

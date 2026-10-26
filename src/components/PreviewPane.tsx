@@ -36,7 +36,7 @@ function Caption({ data }: { data: PreviewData }) {
 }
 
 function InstagramMock({ data }: { data: PreviewData }) {
-  const restaurant = useAppStore((s) => s.restaurant);
+  const restaurant = useAppStore((s) => s.restaurant)!;
   return (
     <div className="rounded-xl border border-secondary/40 bg-white p-3 shadow-card">
       <div className="mb-2 flex items-center gap-2">
@@ -63,7 +63,7 @@ function InstagramMock({ data }: { data: PreviewData }) {
 }
 
 function FacebookMock({ data }: { data: PreviewData }) {
-  const restaurant = useAppStore((s) => s.restaurant);
+  const restaurant = useAppStore((s) => s.restaurant)!;
   return (
     <div className="rounded-xl border border-secondary/40 bg-white p-3 shadow-card">
       <div className="mb-2 flex items-center gap-2">
@@ -89,7 +89,7 @@ function FacebookMock({ data }: { data: PreviewData }) {
 }
 
 function XMock({ data }: { data: PreviewData }) {
-  const restaurant = useAppStore((s) => s.restaurant);
+  const restaurant = useAppStore((s) => s.restaurant)!;
   return (
     <div className="rounded-xl border border-secondary/40 bg-white p-3 shadow-card">
       <div className="mb-2 flex items-center gap-2">

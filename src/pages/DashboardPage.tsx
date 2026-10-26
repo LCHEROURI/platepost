@@ -34,7 +34,7 @@ function StatCard({
 
 export default function DashboardPage() {
   const posts = useAppStore((s) => s.posts);
-  const restaurant = useAppStore((s) => s.restaurant);
+  const restaurant = useAppStore((s) => s.restaurant)!;
 
   const upcoming = useMemo(
     () =>

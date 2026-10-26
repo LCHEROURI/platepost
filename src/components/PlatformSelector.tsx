@@ -31,7 +31,6 @@ export default function PlatformSelector({
             <button
               key={platform}
               type="button"
-              disabled={!connected}
               aria-pressed={active}
               onClick={() => toggle(platform)}
               className={cn(
@@ -39,9 +38,12 @@ export default function PlatformSelector({
                 active
                   ? 'border-accent bg-accent/10 text-accent-700'
                   : 'border-secondary/50 text-ink-muted hover:border-secondary',
-                !connected && 'cursor-not-allowed opacity-50',
               )}
-              title={connected ? PLATFORM_LABELS[platform] : `${PLATFORM_LABELS[platform]} — not connected`}
+              title={
+                connected
+                  ? PLATFORM_LABELS[platform]
+                  : `${PLATFORM_LABELS[platform]} — not connected yet (publishing is a placeholder)`
+              }
             >
               <Icon size={17} aria-hidden />
               <span className="flex-1 text-left">{PLATFORM_LABELS[platform]}</span>

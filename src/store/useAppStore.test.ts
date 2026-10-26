@@ -1,11 +1,39 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAppStore } from './useAppStore';
-import { seedPosts } from '@/lib/seed';
 import type { Post } from '@/lib/types';
+
+const mocks = vi.hoisted(() => ({
+  postService: {
+    load: vi.fn(async () => [] as Post[]),
+    save: vi.fn(async () => undefined),
+    remove: vi.fn(async () => undefined),
+  },
+  restaurantService: {
+    getByOwner: vi.fn(async () => null),
+    create: vi.fn(async () => undefined),
+    update: vi.fn(async () => undefined),
+  },
+}));
+
+vi.mock('@/lib/firebase', () => ({
+  isFirebaseConfigured: false,
+  auth: null,
+  db: null,
+  storage: null,
+}));
+
+vi.mock('@/services/postService', () => ({ postService: mocks.postService }));
+vi.mock('@/services/restaurantService', () => ({
+  restaurantService: mocks.restaurantService,
+  defaultBranding: () => ({ brandColor: '#4A5568', fontFamily: 'Inter' }),
+}));
+
+import { DEMO_USER, useAppStore } from './useAppStore';
+import { seedPosts, seedRestaurant } from '@/lib/seed';
 
 const basePost: Post = {
   id: 'test-post-1',
   restaurantId: 'rest-luna-kitchen',
+  ownerId: 'user-demo-1',
   creatorId: 'user-demo-1',
   caption: 'Test caption',
   mediaType: 'image',
@@ -20,23 +48,55 @@ const basePost: Post = {
   updatedAt: new Date().toISOString(),
 };
 
+function resetStore() {
+  useAppStore.setState({
+    user: null,
+    authReady: false,
+    userDataReady: false,
+    demoMode: false,
+    restaurant: null,
+    accounts: [],
+    posts: [],
+    toasts: [],
+  });
+}
+
 describe('useAppStore', () => {
   beforeEach(() => {
-    useAppStore.setState({ posts: [...seedPosts], toasts: [] });
+    resetStore();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  it('adds a new post at the front of the list', () => {
+  it('initAuth enters demo mode with the demo restaurant when Firebase is unconfigured', async () => {
+    mocks.postService.load.mockResolvedValue(seedPosts);
+    useAppStore.getState().initAuth();
+
+    await vi.waitFor(() => {
+      expect(useAppStore.getState().userDataReady).toBe(true);
+    });
+
+    const s = useAppStore.getState();
+    expect(s.demoMode).toBe(true);
+    expect(s.user?.uid).toBe(DEMO_USER.uid);
+    expect(s.restaurant?.id).toBe(seedRestaurant.id);
+    expect(s.posts).toEqual(seedPosts);
+    expect(s.authReady).toBe(true);
+  });
+
+  it('adds a new post and persists it through the post service', () => {
+    useAppStore.setState({ posts: [...seedPosts] });
     useAppStore.getState().addOrUpdatePost(basePost);
     const { posts } = useAppStore.getState();
     expect(posts[0].id).toBe('test-post-1');
-    expect(posts).toHaveLength(seedPosts.length + 1);
+    expect(mocks.postService.save).toHaveBeenCalledWith(basePost);
   });
 
   it('updates an existing post in place', () => {
+    useAppStore.setState({ posts: [...seedPosts] });
     useAppStore.getState().addOrUpdatePost(basePost);
     useAppStore
       .getState()
@@ -48,10 +108,20 @@ describe('useAppStore', () => {
     expect(post?.status).toBe('scheduled');
   });
 
-  it('removes a post by id', () => {
+  it('removes a post and deletes it through the post service', () => {
+    useAppStore.setState({ posts: [...seedPosts] });
     const first = seedPosts[0];
     useAppStore.getState().removePost(first.id);
     expect(useAppStore.getState().posts.some((p) => p.id === first.id)).toBe(false);
+    expect(mocks.postService.remove).toHaveBeenCalledWith(first);
+  });
+
+  it('signs out to the demo user in demo mode', async () => {
+    useAppStore.setState({ demoMode: true, user: DEMO_USER });
+    await useAppStore.getState().signOut();
+    const s = useAppStore.getState();
+    expect(s.user?.uid).toBe(DEMO_USER.uid);
+    expect(s.restaurant?.id).toBe(seedRestaurant.id);
   });
 
   it('auto-dismisses toasts after the lifetime', () => {
