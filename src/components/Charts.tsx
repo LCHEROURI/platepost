@@ -43,7 +43,7 @@ export function LineChart({
       viewBox={`0 0 ${W} ${H}`}
       className="w-full"
       role="img"
-      aria-label={`${label}: ${Math.round(data[data.length - 1].value).toLocaleString()} on ${data[data.length - 1].label}`}
+      aria-label={`${label}: ${Math.round(data[data.length - 1].value).toLocaleString('en-US')} on ${data[data.length - 1].label}`}
     >
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
@@ -104,7 +104,7 @@ export function BarChart({
             >
               {d.label}
             </text>
-            <title>{`${d.label}: ${d.value.toLocaleString()}`}</title>
+            <title>{`${d.label}: ${d.value.toLocaleString('en-US')}`}</title>
           </g>
         );
       })}

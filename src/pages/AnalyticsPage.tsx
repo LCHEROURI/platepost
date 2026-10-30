@@ -139,9 +139,9 @@ export default function AnalyticsPage() {
           {
             label: 'Total engagements',
             value: demoMode
-              ? sum(points, 'engagements').toLocaleString()
+              ? sum(points, 'engagements').toLocaleString('en-US')
               : insights
-                ? insights.engagementLast7d.toLocaleString()
+                ? insights.engagementLast7d.toLocaleString('en-US')
                 : '—',
             sub: demoMode
               ? `Sample · last ${range} days`
@@ -153,9 +153,9 @@ export default function AnalyticsPage() {
           {
             label: 'Impressions',
             value: demoMode
-              ? sum(points, 'impressions').toLocaleString()
+              ? sum(points, 'impressions').toLocaleString('en-US')
               : insights
-                ? insights.impressionsLast7d.toLocaleString()
+                ? insights.impressionsLast7d.toLocaleString('en-US')
                 : '—',
             sub: demoMode
               ? `Sample · last ${range} days`
@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
                 ? `${(insights.followers.instagram ?? 0) + (insights.followers.facebook ?? 0)}`
                 : '—',
             sub: demoMode
-              ? `${first.followers.toLocaleString()} → ${last.followers.toLocaleString()}`
+              ? `${first.followers.toLocaleString('en-US')} → ${last.followers.toLocaleString('en-US')}`
               : insights
                 ? 'Instagram + Facebook followers'
                 : 'Connect Meta accounts for live numbers',
@@ -261,9 +261,9 @@ export default function AnalyticsPage() {
                   <td className="px-3 py-3">
                     <StatusBadge status={r.post.status} />
                   </td>
-                  <td className="px-3 py-3 tabular-nums">{r.likes.toLocaleString()}</td>
-                  <td className="px-3 py-3 tabular-nums">{r.comments.toLocaleString()}</td>
-                  <td className="px-3 py-3 tabular-nums">{r.impressions.toLocaleString()}</td>
+                  <td className="px-3 py-3 tabular-nums">{r.likes.toLocaleString('en-US')}</td>
+                  <td className="px-3 py-3 tabular-nums">{r.comments.toLocaleString('en-US')}</td>
+                  <td className="px-3 py-3 tabular-nums">{r.impressions.toLocaleString('en-US')}</td>
                 </tr>
               ))}
             </tbody>

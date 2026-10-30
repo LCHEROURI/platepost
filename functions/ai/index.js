@@ -70,6 +70,7 @@ export function buildPrompt({ restaurantName, category, keywords, tone }) {
     `Write captions about ${subject}.`,
     `Tone: ${tone}. Category: ${CATEGORY_LABELS[category] || 'other'}.`,
     'Write exactly 3 distinct caption options, each under 220 characters.',
+    'Write all captions and hashtags in English only, even if the restaurant name or keywords are in another language.',
     'For each caption, provide 4-6 relevant hashtags (lowercase, no spaces).',
     'Respond ONLY with a JSON array of objects with keys "caption" (string) and "hashtags" (array of strings). No markdown fences, no commentary.',
   ].join('\n');

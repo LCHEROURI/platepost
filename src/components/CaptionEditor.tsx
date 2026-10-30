@@ -76,7 +76,7 @@ export default function CaptionEditor({
               caption.length > MAX_CAPTION_CHARS ? 'text-red-600' : 'text-ink-muted',
             )}
           >
-            {caption.length.toLocaleString()} / {MAX_CAPTION_CHARS.toLocaleString()}
+            {caption.length.toLocaleString('en-US')} / {MAX_CAPTION_CHARS.toLocaleString('en-US')}
           </span>
         </div>
         <textarea

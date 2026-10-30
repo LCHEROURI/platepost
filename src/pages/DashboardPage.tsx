@@ -83,18 +83,18 @@ export default function DashboardPage() {
     ? (insights.followers.instagram ?? 0) + (insights.followers.facebook ?? 0)
     : 0;
   const followerSub = insights
-    ? `Instagram ${insights.followers.instagram?.toLocaleString() ?? '—'} · Facebook ${insights.followers.facebook?.toLocaleString() ?? '—'}`
+    ? `Instagram ${insights.followers.instagram?.toLocaleString('en-US') ?? '—'} · Facebook ${insights.followers.facebook?.toLocaleString('en-US') ?? '—'}`
     : '';
 
   const engagementValue = demoMode
-    ? demoSample.engagement.toLocaleString()
+    ? demoSample.engagement.toLocaleString('en-US')
     : connected
-      ? insights!.engagementLast7d.toLocaleString()
+      ? insights!.engagementLast7d.toLocaleString('en-US')
       : '—';
   const followerValue = demoMode
-    ? demoSample.followers.toLocaleString()
+    ? demoSample.followers.toLocaleString('en-US')
     : connected
-      ? totalFollowers.toLocaleString()
+      ? totalFollowers.toLocaleString('en-US')
       : '—';
 
   const today = startOfDay(new Date());
@@ -178,25 +178,25 @@ export default function DashboardPage() {
                 <div className="flex justify-between">
                   <dt className="text-ink-muted">Instagram followers</dt>
                   <dd className="font-semibold tabular-nums text-ink">
-                    {insights!.followers.instagram?.toLocaleString() ?? '—'}
+                    {insights!.followers.instagram?.toLocaleString('en-US') ?? '—'}
                   </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-ink-muted">Facebook followers</dt>
                   <dd className="font-semibold tabular-nums text-ink">
-                    {insights!.followers.facebook?.toLocaleString() ?? '—'}
+                    {insights!.followers.facebook?.toLocaleString('en-US') ?? '—'}
                   </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-ink-muted">Engagement (7d)</dt>
                   <dd className="font-semibold tabular-nums text-ink">
-                    {insights!.engagementLast7d.toLocaleString()}
+                    {insights!.engagementLast7d.toLocaleString('en-US')}
                   </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-ink-muted">Impressions (7d)</dt>
                   <dd className="font-semibold tabular-nums text-ink">
-                    {insights!.impressionsLast7d.toLocaleString()}
+                    {insights!.impressionsLast7d.toLocaleString('en-US')}
                   </dd>
                 </div>
               </dl>
